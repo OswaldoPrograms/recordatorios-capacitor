@@ -10,6 +10,16 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 - Tema claro y oscuro.
 - PWA instalable y funcionamiento sin conexión.
 - Notificaciones locales al ejecutarse como aplicación Android.
+- Calendario mensual con agenda por día.
+- Personas responsables y etiquetas en las tareas.
+- Notas independientes con búsqueda y colores.
+- Asistente agéntico compatible con OpenAI, OpenRouter y APIs compatibles.
+
+## Configurar la inteligencia artificial
+
+Abre **Configuración** dentro de la aplicación, selecciona el proveedor y captura endpoint, modelo y llave API. La llave no forma parte del código ni se sube al repositorio. El asistente puede crear y consultar tareas, completar tareas por ID, registrar personas y crear notas.
+
+> Para una APK personal la configuración se guarda localmente. Si se publica como web para varios usuarios, utiliza un backend intermediario para no exponer llaves API en el navegador.
 
 ## Probar en navegador
 
