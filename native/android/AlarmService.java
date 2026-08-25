@@ -16,8 +16,9 @@ public class AlarmService extends Service {
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         String id = intent.getStringExtra("taskId");
         String title = intent.getStringExtra("title");
+        long nextAt = intent.getLongExtra("nextAt", 0L); boolean repeating = intent.getBooleanExtra("repeating", false);
         createChannel();
-        startForeground(9001, notification(id, title));
+        startForeground(9001, notification(id, title, nextAt, repeating));
         startSound();
         handler.postDelayed(this::stopSelf, 10 * 60 * 1000L);
         return START_NOT_STICKY;
@@ -32,18 +33,19 @@ public class AlarmService extends Service {
         }
     }
 
-    private Notification notification(String id, String title) {
-        Intent screen = new Intent(this, AlarmActivity.class).putExtra("taskId", id).putExtra("title", title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    private Notification notification(String id, String title, long nextAt, boolean repeating) {
+        Intent screen = new Intent(this, AlarmActivity.class).putExtra("taskId", id).putExtra("title", title).putExtra("nextAt", nextAt).putExtra("repeating", repeating).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent full = PendingIntent.getActivity(this, AlarmScheduler.requestCode(id + ":full"), screen, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Intent stop = new Intent(this, AlarmActionReceiver.class).setAction("stop").putExtra("taskId", id).putExtra("title", title);
-        Intent snooze = new Intent(this, AlarmActionReceiver.class).setAction("snooze").putExtra("taskId", id).putExtra("title", title);
+        Intent stop = actionIntent("complete", id, title, nextAt, repeating);
+        Intent snooze = actionIntent("snooze_10", id, title, nextAt, repeating);
         PendingIntent stopAction = PendingIntent.getBroadcast(this, AlarmScheduler.requestCode(id + ":stop"), stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent snoozeAction = PendingIntent.getBroadcast(this, AlarmScheduler.requestCode(id + ":snooze"), snooze, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new NotificationCompat.Builder(this, "alarm_clock").setSmallIcon(getApplicationInfo().icon).setColor(Color.rgb(103,80,164))
             .setContentTitle(title).setContentText("Tarea de prioridad alta").setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true)
-            .setFullScreenIntent(full, true).setContentIntent(full).addAction(0, "Detener", stopAction).addAction(0, "Posponer 10 min", snoozeAction).build();
+            .setFullScreenIntent(full, true).setContentIntent(full).addAction(0, "Completar", stopAction).addAction(0, "Posponer 10 min", snoozeAction).build();
     }
+    private Intent actionIntent(String action,String id,String title,long nextAt,boolean repeating){return new Intent(this,AlarmActionReceiver.class).setAction(action).putExtra("taskId",id).putExtra("title",title).putExtra("nextAt",nextAt).putExtra("repeating",repeating);}
 
     private void startSound() {
         try {
