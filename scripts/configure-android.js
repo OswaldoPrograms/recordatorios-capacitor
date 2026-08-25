@@ -33,18 +33,28 @@ try {
   await writeFile(manifestPath, manifest);
 
   await mkdir(javaPath, { recursive: true });
-  for (const file of ['AlarmPlugin.java','AlarmScheduler.java','AlarmReceiver.java','AlarmActionReceiver.java','AlarmService.java','AlarmActivity.java','BootReceiver.java','BackupStoragePlugin.java'])
+  for (const file of ['AlarmPlugin.java','AlarmScheduler.java','AlarmReceiver.java','AlarmActionReceiver.java','AlarmService.java','AlarmActivity.java','BootReceiver.java','BackupStoragePlugin.java','SecureVaultPlugin.java'])
     await cp(`native/android/${file}`, `${javaPath}/${file}`);
 
   let activity = await readFile(mainActivityPath, 'utf8');
   if (!activity.includes('registerPlugin(AlarmPlugin.class)')) {
     activity = activity.replace('import com.getcapacitor.BridgeActivity;', 'import com.getcapacitor.BridgeActivity;\nimport android.os.Bundle;');
     activity = activity.replace(/public class MainActivity extends BridgeActivity\s*\{[^}]*\}/s,
-      'public class MainActivity extends BridgeActivity {\n    @Override public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(AlarmPlugin.class);\n        registerPlugin(BackupStoragePlugin.class);\n        super.onCreate(savedInstanceState);\n    }\n}');
+      'public class MainActivity extends BridgeActivity {\n    @Override public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(AlarmPlugin.class);\n        registerPlugin(BackupStoragePlugin.class);\n        registerPlugin(SecureVaultPlugin.class);\n        super.onCreate(savedInstanceState);\n    }\n}');
     await writeFile(mainActivityPath, activity);
   } else if (!activity.includes('registerPlugin(BackupStoragePlugin.class)')) {
     activity = activity.replace('registerPlugin(AlarmPlugin.class);', 'registerPlugin(AlarmPlugin.class);\n        registerPlugin(BackupStoragePlugin.class);');
     await writeFile(mainActivityPath, activity);
+  }
+  if (!activity.includes('registerPlugin(SecureVaultPlugin.class)')) {
+    activity = activity.replace('registerPlugin(BackupStoragePlugin.class);', 'registerPlugin(BackupStoragePlugin.class);\n        registerPlugin(SecureVaultPlugin.class);');
+    await writeFile(mainActivityPath, activity);
+  }
+  const gradlePath = 'android/app/build.gradle';
+  let gradle = await readFile(gradlePath, 'utf8');
+  if (!gradle.includes('androidx.biometric:biometric')) {
+    gradle = gradle.replace('dependencies {', "dependencies {\n    implementation 'androidx.biometric:biometric:1.1.0'");
+    await writeFile(gradlePath, gradle);
   }
   console.log('Alarma nativa de Android configurada.');
 } catch (error) {
