@@ -48,7 +48,10 @@ public class BackupStoragePlugin extends Plugin {
         if (content == null) { call.reject("Falta el contenido del respaldo"); return; }
         try {
             Uri file = findFile(folder);
-            if (file == null) file = DocumentsContract.createDocument(getContext().getContentResolver(), folder, "application/json", FILE_NAME);
+            if (file == null) {
+                Uri directory = DocumentsContract.buildDocumentUriUsingTree(folder, DocumentsContract.getTreeDocumentId(folder));
+                file = DocumentsContract.createDocument(getContext().getContentResolver(), directory, "application/json", FILE_NAME);
+            }
             if (file == null) { call.reject("No se pudo crear el archivo"); return; }
             try (OutputStream stream = getContext().getContentResolver().openOutputStream(file, "wt")) { if (stream == null) throw new IllegalStateException(); stream.write(content.getBytes(StandardCharsets.UTF_8)); }
             JSObject response = new JSObject(); response.put("saved", true); response.put("savedAt", System.currentTimeMillis()); call.resolve(response);
