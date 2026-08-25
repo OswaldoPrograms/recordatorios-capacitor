@@ -10,6 +10,7 @@ const permissions = [
   '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
   '<uses-permission android:name="android.permission.VIBRATE" />',
   '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+  '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />'
 ];
