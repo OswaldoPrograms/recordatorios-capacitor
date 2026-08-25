@@ -8,7 +8,8 @@
     "dev": "node scripts/serve.js",
     "build": "node scripts/build.js",
     "test": "node --test",
-    "cap:add:android": "npx cap add android",
+    "cap:add:android": "npx cap add android && node scripts/configure-android.js",
+    "cap:configure:android": "node scripts/configure-android.js",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android"
   },
