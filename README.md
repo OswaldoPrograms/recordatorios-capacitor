@@ -12,6 +12,9 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 - Notificaciones locales al ejecutarse como aplicación Android.
 - Alertas anticipadas configurables por tarea.
 - Acciones para completar o posponer 10 minutos o una hora desde la notificación.
+- Las tareas de prioridad alta activan una alarma nativa tipo despertador con sonido continuo, vibración y pantalla sobre el bloqueo.
+- La alarma prioritaria permite detener o posponer 10 minutos y se detiene automáticamente después de 10 minutos.
+- Las alarmas prioritarias pendientes se restauran después de reiniciar el teléfono.
 - Calendario mensual con agenda por día.
 - Personas responsables y etiquetas en las tareas.
 - Notas independientes con búsqueda y colores.
@@ -49,7 +52,7 @@ npm run cap:open
 
 En Android Studio selecciona **Build > Build APK(s)**. Después de modificar la web basta ejecutar `npm run cap:sync` antes de volver a compilar.
 
-El comando `npm run cap:add:android` agrega automáticamente el permiso de alarmas exactas. Android 13 o superior solicitará además autorización para mostrar notificaciones. El usuario puede desactivar las alarmas exactas desde los ajustes del teléfono, por lo que conviene mantenerlas habilitadas para recibir avisos puntuales.
+El comando `npm run cap:add:android` instala automáticamente el componente nativo de alarma y sus permisos. Android 13 o superior solicitará autorización para mostrar notificaciones. Las tareas bajas y medias utilizan notificaciones locales; las de prioridad alta utilizan el volumen de alarmas del sistema y pueden despertar el dispositivo.
 
 ## Pruebas
 
