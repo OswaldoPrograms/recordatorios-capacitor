@@ -16,11 +16,19 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 - La alarma prioritaria permite detener o posponer 10 minutos y se detiene automáticamente después de 10 minutos.
 - Las alarmas prioritarias pendientes se restauran después de reiniciar el teléfono.
 - Calendario mensual con agenda por día.
-- Personas responsables y etiquetas en las tareas.
+- Perfiles de personas con relación, apodos, teléfono, correo, cumpleaños, dirección, empresa e información adicional.
+- Búsqueda privada enriquecida para encontrar personas por sus datos, relación o contexto sin mostrar etiquetas internas en la interfaz.
 - Notas independientes con búsqueda y colores.
-- Asistente agéntico compatible con OpenAI, OpenRouter y APIs compatibles.
+- Asistente agéntico compatible con OpenAI, OpenRouter y APIs compatibles; puede consultar y actualizar la información de personas.
 - Historial de conversación con opción para iniciar un chat nuevo.
 - Dictado por voz con llave, endpoint y modelo de transcripción independientes.
+- Base de datos SQLite nativa en Android, con respaldo de seguridad compatible en la versión web.
+
+## Almacenamiento y migración
+
+En la APK, las tareas, personas, notas, conversaciones y preferencias se guardan en SQLite. Al instalar esta actualización, la aplicación detecta los datos de versiones anteriores y los importa automáticamente una sola vez, sin borrar la copia anterior. Los respaldos manuales y de Drive continúan usando archivos JSON para que puedan restaurarse fácilmente.
+
+Las llaves de IA y transcripción no se guardan en SQLite: en Android permanecen protegidas por Android Keystore.
 
 ## Configurar la inteligencia artificial
 
