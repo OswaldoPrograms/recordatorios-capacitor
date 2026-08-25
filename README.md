@@ -52,6 +52,10 @@ npm run cap:open
 
 En Android Studio selecciona **Build > Build APK(s)**. Después de modificar la web basta ejecutar `npm run cap:sync` antes de volver a compilar.
 
+## Compilar sin Android Studio
+
+Abre la pestaña **Actions** del repositorio, selecciona **Compilar APK** y pulsa **Run workflow**. Cuando termine, abre la ejecución y descarga el artefacto `recordatorios-apk`. El archivo ZIP contiene `app-debug.apk`, listo para instalar manualmente en Android.
+
 El comando `npm run cap:add:android` instala automáticamente el componente nativo de alarma y sus permisos. Android 13 o superior solicitará autorización para mostrar notificaciones. Las tareas bajas y medias utilizan notificaciones locales; las de prioridad alta utilizan el volumen de alarmas del sistema y pueden despertar el dispositivo.
 
 ## Pruebas
