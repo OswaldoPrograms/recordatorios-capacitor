@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6750a4">
+  <meta name="description" content="Recordatorios sencillos, rápidos y disponibles sin conexión.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Recordatorios</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MI AGENDA</p>
+        <h1>Recordatorios</h1>
+      </div>
+      <button id="themeButton" class="icon-button" aria-label="Cambiar tema" title="Cambiar tema">◐</button>
+    </header>
+
+    <main>
+      <section class="summary" aria-label="Resumen">
+        <article><strong id="pendingCount">0</strong><span>Pendientes</span></article>
+        <article><strong id="todayCount">0</strong><span>Para hoy</span></article>
+        <article><strong id="doneCount">0</strong><span>Completados</span></article>
+      </section>
+
+      <section class="toolbar">
+        <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Buscar recordatorios…"></label>
+        <div class="filters" role="group" aria-label="Filtrar recordatorios">
+          <button class="filter active" data-filter="pending">Pendientes</button>
+          <button class="filter" data-filter="today">Hoy</button>
+          <button class="filter" data-filter="all">Todos</button>
+          <button class="filter" data-filter="done">Terminados</button>
+        </div>
+      </section>
+
+      <section id="reminderList" class="reminder-list" aria-live="polite"></section>
+      <section id="emptyState" class="empty-state" hidden>
+        <div class="empty-icon">✓</div>
+        <h2>Todo en orden</h2>
+        <p>No hay recordatorios en esta vista.</p>
+      </section>
+    </main>
+
+    <button id="addButton" class="fab"><span>＋</span> Nuevo recordatorio</button>
+  </div>
+
+  <dialog id="reminderDialog">
+    <form id="reminderForm" method="dialog">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">ORGANIZA TU DÍA</p><h2 id="dialogTitle">Nuevo recordatorio</h2></div>
+        <button type="button" id="closeDialog" class="icon-button" aria-label="Cerrar">×</button>
+      </div>
+      <input id="reminderId" type="hidden">
+      <label>Título<input id="titleInput" required maxlength="100" autocomplete="off" placeholder="Ej. Entregar reporte mensual"></label>
+      <label>Notas<textarea id="notesInput" maxlength="500" rows="3" placeholder="Detalles opcionales"></textarea></label>
+      <div class="form-grid">
+        <label>Fecha<input id="dateInput" type="date" required></label>
+        <label>Hora<input id="timeInput" type="time" required></label>
+      </div>
+      <div class="form-grid">
+        <label>Prioridad<select id="priorityInput"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option></select></label>
+        <label>Repetir<select id="repeatInput"><option value="none">No repetir</option><option value="daily">Cada día</option><option value="weekly">Cada semana</option><option value="monthly">Cada mes</option></select></label>
+      </div>
+      <p id="formError" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" id="cancelButton" class="secondary">Cancelar</button><button type="submit" class="primary">Guardar</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
