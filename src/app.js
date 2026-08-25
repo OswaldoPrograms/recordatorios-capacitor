@@ -1,90 +1,43 @@
 import { filterReminders, getSummary, localDateKey, nextOccurrence, toDateTime, validateReminder } from './reminders.js';
-
-const STORAGE_KEY = 'recordatorios.v1';
-const $ = (selector) => document.querySelector(selector);
-const state = { items: loadItems(), filter: 'pending', query: '' };
-const els = {
-  list: $('#reminderList'), empty: $('#emptyState'), dialog: $('#reminderDialog'), form: $('#reminderForm'),
-  id: $('#reminderId'), title: $('#titleInput'), notes: $('#notesInput'), date: $('#dateInput'), time: $('#timeInput'),
-  priority: $('#priorityInput'), repeat: $('#repeatInput'), error: $('#formError'), dialogTitle: $('#dialogTitle'), toast: $('#toast')
-};
-
-function loadItems() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
-}
-function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items)); }
-function escapeHtml(value = '') { const node = document.createElement('span'); node.textContent = value; return node.innerHTML; }
-function formatDue(item) {
-  const due = toDateTime(item);
-  const date = new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).format(due);
-  const time = new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit' }).format(due);
-  return `${date} · ${time}`;
-}
-function repeatLabel(value) { return ({ daily: 'Cada día', weekly: 'Cada semana', monthly: 'Cada mes' })[value] || ''; }
-function showToast(message) { els.toast.textContent = message; els.toast.classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2400); }
-
-function render() {
-  const visible = filterReminders(state.items, state.filter, state.query);
-  const summary = getSummary(state.items);
-  $('#pendingCount').textContent = summary.pending; $('#todayCount').textContent = summary.today; $('#doneCount').textContent = summary.done;
-  els.empty.hidden = visible.length > 0;
-  els.list.innerHTML = visible.map((item) => `
-    <article class="reminder ${item.completed ? 'completed' : ''}" data-id="${item.id}">
-      <button class="check" data-action="toggle" aria-label="${item.completed ? 'Marcar pendiente' : 'Completar'}">${item.completed ? '✓' : ''}</button>
-      <div class="reminder-content">
-        <div class="reminder-title"><h3>${escapeHtml(item.title)}</h3><span class="priority ${item.priority}">${({ high: 'Alta', medium: 'Media', low: 'Baja' })[item.priority]}</span></div>
-        ${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ''}
-        <div class="meta"><span>◷ ${formatDue(item)}</span>${item.repeat !== 'none' ? `<span>↻ ${repeatLabel(item.repeat)}</span>` : ''}</div>
-      </div>
-      <div class="item-actions"><button data-action="edit" aria-label="Editar">✎</button><button data-action="delete" aria-label="Eliminar">⌫</button></div>
-    </article>`).join('');
-}
-
-function openForm(item) {
-  els.form.reset(); els.error.textContent = ''; els.id.value = item?.id || ''; els.dialogTitle.textContent = item ? 'Editar recordatorio' : 'Nuevo recordatorio';
-  const defaultTime = new Date(Date.now() + 3600000); defaultTime.setMinutes(Math.ceil(defaultTime.getMinutes() / 5) * 5, 0, 0);
-  els.title.value = item?.title || ''; els.notes.value = item?.notes || ''; els.date.value = item?.date || localDateKey(defaultTime);
-  els.time.value = item?.time || `${String(defaultTime.getHours()).padStart(2, '0')}:${String(defaultTime.getMinutes()).padStart(2, '0')}`;
-  els.priority.value = item?.priority || 'medium'; els.repeat.value = item?.repeat || 'none'; els.dialog.showModal(); setTimeout(() => els.title.focus(), 50);
-}
-
-async function scheduleNotification(item) {
-  const at = toDateTime(item); if (at <= new Date() || item.completed) return;
-  try {
-    const cap = globalThis.Capacitor;
-    if (cap?.isNativePlatform?.()) {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      const permission = await LocalNotifications.requestPermissions();
-      if (permission.display === 'granted') await LocalNotifications.schedule({ notifications: [{ id: hashId(item.id), title: item.title, body: item.notes || 'Tienes un recordatorio pendiente', schedule: { at }, extra: { reminderId: item.id } }] });
-    }
-  } catch (error) { console.warn('No se pudo programar la notificación', error); }
-}
-function hashId(value) { return [...value].reduce((hash, char) => ((hash * 31 + char.charCodeAt(0)) | 0), 7) & 0x7fffffff; }
-async function cancelNotification(item) {
-  try { if (globalThis.Capacitor?.isNativePlatform?.()) { const { LocalNotifications } = await import('@capacitor/local-notifications'); await LocalNotifications.cancel({ notifications: [{ id: hashId(item.id) }] }); } } catch {}
-}
-
-els.form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const item = { id: els.id.value || crypto.randomUUID(), title: els.title.value.trim(), notes: els.notes.value.trim(), date: els.date.value, time: els.time.value, priority: els.priority.value, repeat: els.repeat.value, completed: false, createdAt: new Date().toISOString() };
-  const error = validateReminder({ ...item, id: els.id.value }); if (error) { els.error.textContent = error; return; }
-  const index = state.items.findIndex((entry) => entry.id === item.id); if (index >= 0) { await cancelNotification(state.items[index]); item.completed = state.items[index].completed; item.createdAt = state.items[index].createdAt; state.items[index] = item; } else state.items.push(item);
-  saveItems(); await scheduleNotification(item); els.dialog.close(); render(); showToast(index >= 0 ? 'Recordatorio actualizado' : 'Recordatorio guardado');
-});
-
-els.list.addEventListener('click', async (event) => {
-  const button = event.target.closest('[data-action]'); if (!button) return;
-  const item = state.items.find((entry) => entry.id === button.closest('[data-id]').dataset.id); if (!item) return;
-  if (button.dataset.action === 'edit') return openForm(item);
-  if (button.dataset.action === 'delete') { if (!confirm(`¿Eliminar “${item.title}”?`)) return; await cancelNotification(item); state.items = state.items.filter((entry) => entry.id !== item.id); showToast('Recordatorio eliminado'); }
-  if (button.dataset.action === 'toggle') { item.completed = !item.completed; if (item.completed) { await cancelNotification(item); if (item.repeat !== 'none') { const next = nextOccurrence(item); state.items.push(next); await scheduleNotification(next); } } else await scheduleNotification(item); }
-  saveItems(); render();
-});
-
-$('#addButton').addEventListener('click', () => openForm()); $('#closeDialog').addEventListener('click', () => els.dialog.close()); $('#cancelButton').addEventListener('click', () => els.dialog.close());
-$('#searchInput').addEventListener('input', (event) => { state.query = event.target.value; render(); });
-document.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { document.querySelector('.filter.active').classList.remove('active'); button.classList.add('active'); state.filter = button.dataset.filter; render(); }));
-$('#themeButton').addEventListener('click', () => { const dark = document.documentElement.classList.toggle('dark'); localStorage.setItem('recordatorios.theme', dark ? 'dark' : 'light'); });
-if (localStorage.getItem('recordatorios.theme') === 'dark' || (!localStorage.getItem('recordatorios.theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
-if ('serviceWorker' in navigator && !globalThis.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('./sw.js');
-render();
+const $=(s)=>document.querySelector(s), $$=(s)=>[...document.querySelectorAll(s)];
+const KEYS={tasks:'recordatorios.v1',people:'recordatorios.people.v1',notes:'recordatorios.notes.v1',ai:'recordatorios.ai.v1'};
+const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}};
+const state={tasks:read(KEYS.tasks).map(x=>({...x,tags:x.tags||[],personId:x.personId||''})),people:read(KEYS.people),notes:read(KEYS.notes),ai:read(KEYS.ai,{}),filter:'pending',query:'',calendar:new Date(),selectedDate:localDateKey()};
+const save=()=>{localStorage.setItem(KEYS.tasks,JSON.stringify(state.tasks));localStorage.setItem(KEYS.people,JSON.stringify(state.people));localStorage.setItem(KEYS.notes,JSON.stringify(state.notes))};
+const esc=(v='')=>{const x=document.createElement('span');x.textContent=v;return x.innerHTML};
+const uid=()=>crypto.randomUUID(), person=(id)=>state.people.find(x=>x.id===id), fmt=(x)=>new Intl.DateTimeFormat('es-MX',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}).format(toDateTime(x));
+function toast(text){const e=$('#toast');e.textContent=text;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2200)}
+function renderTasks(){const list=filterReminders(state.tasks,state.filter,state.query),s=getSummary(state.tasks);$('#pendingCount').textContent=s.pending;$('#todayCount').textContent=s.today;$('#doneCount').textContent=s.done;$('#taskEmpty').hidden=!!list.length;$('#reminderList').innerHTML=list.map(x=>{const p=person(x.personId);return `<article class="reminder ${x.completed?'completed':''}" data-id="${x.id}"><button class="check" data-task="toggle">${x.completed?'✓':''}</button><div class="reminder-content"><div class="reminder-title"><h3>${esc(x.title)}</h3><span class="priority ${x.priority}">${({high:'Alta',medium:'Media',low:'Baja'})[x.priority]}</span></div>${x.notes?`<p>${esc(x.notes)}</p>`:''}<div class="meta"><span>◷ ${fmt(x)}</span>${p?`<span>♙ ${esc(p.name)}</span>`:''}</div><div class="tags">${x.tags.map(t=>`<span>#${esc(t)}</span>`).join('')}</div></div><div class="item-actions"><button data-task="edit">✎</button><button data-task="delete">⌫</button></div></article>`}).join('')}
+function renderPeople(){const grid=$('#peopleGrid');grid.innerHTML=state.people.length?state.people.map(p=>{const count=state.tasks.filter(t=>t.personId===p.id&&!t.completed).length;return `<article class="person-card" data-id="${p.id}"><div class="avatar" style="background:${p.color}">${esc(p.name.slice(0,2).toUpperCase())}</div><h3>${esc(p.name)}</h3><p>${esc(p.email||p.phone||'Sin datos de contacto')}</p><span>${count} tarea(s) pendiente(s)</span><div><button data-person="edit">Editar</button><button data-person="delete">Eliminar</button></div></article>`}).join(''):`<div class="empty-state"><div>♙</div><h2>Aún no hay personas</h2></div>`}
+function renderNotes(){const q=$('#noteSearch').value.toLowerCase(),items=state.notes.filter(n=>(n.title+' '+n.content).toLowerCase().includes(q));$('#notesGrid').innerHTML=items.length?items.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(n=>`<article class="note-card ${n.color}" data-id="${n.id}"><div><h3>${esc(n.title)}</h3><p>${esc(n.content).replace(/\n/g,'<br>')}</p></div><footer><small>${new Date(n.updatedAt).toLocaleDateString('es-MX')}</small><span><button data-note="edit">✎</button><button data-note="delete">⌫</button></span></footer></article>`).join(''):`<div class="empty-state"><div>▤</div><h2>No hay notas</h2></div>`}
+function renderCalendar(){const y=state.calendar.getFullYear(),m=state.calendar.getMonth(),first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();$('#monthTitle').textContent=new Intl.DateTimeFormat('es-MX',{month:'long',year:'numeric'}).format(state.calendar);let html='';for(let i=0;i<first;i++)html+='<div class="day muted"></div>';for(let d=1;d<=days;d++){const key=localDateKey(new Date(y,m,d)),items=state.tasks.filter(t=>t.date===key);html+=`<button class="day ${key===localDateKey()?'today':''} ${key===state.selectedDate?'selected':''}" data-date="${key}"><b>${d}</b><span class="dots">${items.slice(0,3).map(t=>`<i class="${t.priority}"></i>`).join('')}</span></button>`}$('#calendarGrid').innerHTML=html;const items=state.tasks.filter(t=>t.date===state.selectedDate).sort((a,b)=>a.time.localeCompare(b.time));$('#dayAgenda').innerHTML=`<h2>${new Date(state.selectedDate+'T12:00').toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}</h2>`+(items.length?items.map(t=>`<div class="agenda-row"><time>${t.time}</time><span><b>${esc(t.title)}</b><small>${t.tags.map(x=>'#'+esc(x)).join(' ')}</small></span></div>`).join(''):'<p>No hay tareas para este día.</p>')}
+function renderAll(){renderTasks();renderPeople();renderNotes();renderCalendar();updateAiStatus()}
+function openTask(item){$('#taskForm').reset();$('#taskId').value=item?.id||'';$('#titleInput').value=item?.title||'';$('#taskNotes').value=item?.notes||'';const d=new Date(Date.now()+3600000);$('#dateInput').value=item?.date||localDateKey(d);$('#timeInput').value=item?.time||`${String(d.getHours()).padStart(2,'0')}:00`;$('#priorityInput').value=item?.priority||'medium';$('#repeatInput').value=item?.repeat||'none';$('#personInput').innerHTML='<option value="">Sin asignar</option>'+state.people.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');$('#personInput').value=item?.personId||'';$('#tagsInput').value=(item?.tags||[]).join(', ');$('#taskError').textContent='';$('#taskDialog').showModal()}
+function openPerson(p){$('#personForm').reset();$('#personId').value=p?.id||'';$('#personName').value=p?.name||'';$('#personEmail').value=p?.email||'';$('#personPhone').value=p?.phone||'';$('#personColor').value=p?.color||'#6750a4';$('#personDialog').showModal()}
+function openNote(n){$('#noteForm').reset();$('#noteId').value=n?.id||'';$('#noteTitle').value=n?.title||'';$('#noteContent').value=n?.content||'';$('#noteColor').value=n?.color||'purple';$('#noteDialog').showModal()}
+async function notify(item){if(toDateTime(item)<=new Date()||item.completed)return;try{if(globalThis.Capacitor?.isNativePlatform?.()){const{LocalNotifications}=await import('@capacitor/local-notifications');if((await LocalNotifications.requestPermissions()).display==='granted')await LocalNotifications.schedule({notifications:[{id:hash(item.id),title:item.title,body:item.notes||'Tienes una tarea pendiente',schedule:{at:toDateTime(item)},extra:{reminderId:item.id}}]})}}catch(e){console.warn(e)}}
+const hash=(v)=>[...v].reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7)&0x7fffffff;
+async function cancel(item){try{if(globalThis.Capacitor?.isNativePlatform?.()){const{LocalNotifications}=await import('@capacitor/local-notifications');await LocalNotifications.cancel({notifications:[{id:hash(item.id)}]})}}catch{}}
+$('#taskForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#taskId').value,item={id:id||uid(),title:$('#titleInput').value.trim(),notes:$('#taskNotes').value.trim(),date:$('#dateInput').value,time:$('#timeInput').value,priority:$('#priorityInput').value,repeat:$('#repeatInput').value,personId:$('#personInput').value,tags:[...new Set($('#tagsInput').value.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean))],completed:false,createdAt:new Date().toISOString()};const error=validateReminder({...item,id});if(error)return $('#taskError').textContent=error;const i=state.tasks.findIndex(x=>x.id===item.id);if(i>=0){await cancel(state.tasks[i]);item.completed=state.tasks[i].completed;item.createdAt=state.tasks[i].createdAt;state.tasks[i]=item}else state.tasks.push(item);save();notify(item);e.target.closest('dialog').close();renderAll();toast('Tarea guardada')});
+$('#personForm').addEventListener('submit',e=>{e.preventDefault();const id=$('#personId').value,p={id:id||uid(),name:$('#personName').value.trim(),email:$('#personEmail').value.trim(),phone:$('#personPhone').value.trim(),color:$('#personColor').value};const i=state.people.findIndex(x=>x.id===p.id);i>=0?state.people[i]=p:state.people.push(p);save();e.target.closest('dialog').close();renderAll();toast('Persona guardada')});
+$('#noteForm').addEventListener('submit',e=>{e.preventDefault();const id=$('#noteId').value,n={id:id||uid(),title:$('#noteTitle').value.trim(),content:$('#noteContent').value.trim(),color:$('#noteColor').value,updatedAt:new Date().toISOString()};const i=state.notes.findIndex(x=>x.id===n.id);i>=0?state.notes[i]=n:state.notes.push(n);save();e.target.closest('dialog').close();renderNotes();toast('Nota guardada')});
+$('#reminderList').addEventListener('click',async e=>{const b=e.target.closest('[data-task]');if(!b)return;const x=state.tasks.find(t=>t.id===b.closest('[data-id]').dataset.id);if(b.dataset.task==='edit')return openTask(x);if(b.dataset.task==='delete'){if(confirm('¿Eliminar esta tarea?')){await cancel(x);state.tasks=state.tasks.filter(t=>t.id!==x.id)}}if(b.dataset.task==='toggle'){x.completed=!x.completed;if(x.completed){await cancel(x);if(x.repeat!=='none'){const n=nextOccurrence(x);n.tags=x.tags;n.personId=x.personId;state.tasks.push(n);notify(n)}}else notify(x)}save();renderAll()});
+$('#peopleGrid').addEventListener('click',e=>{const b=e.target.closest('[data-person]');if(!b)return;const p=state.people.find(x=>x.id===b.closest('[data-id]').dataset.id);if(b.dataset.person==='edit')openPerson(p);else if(confirm('¿Eliminar esta persona? Las tareas quedarán sin responsable.')){state.people=state.people.filter(x=>x.id!==p.id);state.tasks.forEach(t=>{if(t.personId===p.id)t.personId='' });save();renderAll()}});
+$('#notesGrid').addEventListener('click',e=>{const b=e.target.closest('[data-note]');if(!b)return;const n=state.notes.find(x=>x.id===b.closest('[data-id]').dataset.id);if(b.dataset.note==='edit')openNote(n);else if(confirm('¿Eliminar esta nota?')){state.notes=state.notes.filter(x=>x.id!==n.id);save();renderNotes()}});
+$$('[data-open]').forEach(b=>b.onclick=()=>({task:openTask,person:openPerson,note:openNote})[b.dataset.open]());$$('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+$('#searchInput').oninput=e=>{state.query=e.target.value;renderTasks()};$('#noteSearch').oninput=renderNotes;$$('.filter').forEach(b=>b.onclick=()=>{$('.filter.active').classList.remove('active');b.classList.add('active');state.filter=b.dataset.filter;renderTasks()});
+$('#mainNav').onclick=e=>{const b=e.target.closest('[data-view]');if(!b)return;$$('.nav-item').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.view+'View').classList.add('active');$('.sidebar').classList.remove('open');if(b.dataset.view==='calendar')renderCalendar()};
+$('#mobileMenu').onclick=()=>$('.sidebar').classList.toggle('open');$('#themeButton').onclick=()=>{const d=document.documentElement.classList.toggle('dark');localStorage.setItem('recordatorios.theme',d?'dark':'light')};if(localStorage.getItem('recordatorios.theme')==='dark')document.documentElement.classList.add('dark');
+$('#calendarGrid').onclick=e=>{const b=e.target.closest('[data-date]');if(b){state.selectedDate=b.dataset.date;renderCalendar()}};$('#prevMonth').onclick=()=>{state.calendar.setMonth(state.calendar.getMonth()-1);renderCalendar()};$('#nextMonth').onclick=()=>{state.calendar.setMonth(state.calendar.getMonth()+1);renderCalendar()};
+const presets={openrouter:{endpoint:'https://openrouter.ai/api/v1/chat/completions',model:'openai/gpt-oss-20b:free'},openai:{endpoint:'https://api.openai.com/v1/chat/completions',model:'gpt-5-mini'}};
+function loadAi(){const a=state.ai;$('#aiProvider').value=a.provider||'openrouter';$('#aiEndpoint').value=a.endpoint||presets.openrouter.endpoint;$('#aiModel').value=a.model||presets.openrouter.model;$('#aiKey').value=a.key||'';$('#ownerName').value=a.ownerName||''}
+function updateAiStatus(){const ok=!!state.ai.key;$('#aiStatus').textContent=ok?'IA configurada':'Sin configurar';$('#aiStatus').classList.toggle('ready',ok)}
+$('#aiProvider').onchange=e=>{const p=presets[e.target.value];if(p){$('#aiEndpoint').value=p.endpoint;$('#aiModel').value=p.model}};$('#toggleKey').onclick=()=>{$('#aiKey').type=$('#aiKey').type==='password'?'text':'password'};$('#aiSettings').onsubmit=e=>{e.preventDefault();state.ai={provider:$('#aiProvider').value,endpoint:$('#aiEndpoint').value.trim(),model:$('#aiModel').value.trim(),key:$('#aiKey').value.trim(),ownerName:$('#ownerName').value.trim()};localStorage.setItem(KEYS.ai,JSON.stringify(state.ai));updateAiStatus();$('#settingsResult').textContent='Configuración guardada.';toast('Configuración guardada')};
+const tools=[{type:'function',function:{name:'crear_tarea',description:'Crea una tarea',parameters:{type:'object',properties:{title:{type:'string'},date:{type:'string',description:'YYYY-MM-DD'},time:{type:'string',description:'HH:mm'},notes:{type:'string'},priority:{type:'string',enum:['low','medium','high']},tags:{type:'array',items:{type:'string'}},personName:{type:'string'}},required:['title','date','time']}}},{type:'function',function:{name:'buscar_tareas',description:'Busca tareas',parameters:{type:'object',properties:{query:{type:'string'},pendingOnly:{type:'boolean'}}}}},{type:'function',function:{name:'completar_tarea',description:'Completa una tarea por ID',parameters:{type:'object',properties:{id:{type:'string'}},required:['id']}}},{type:'function',function:{name:'crear_persona',description:'Registra una persona',parameters:{type:'object',properties:{name:{type:'string'},email:{type:'string'},phone:{type:'string'}},required:['name']}}},{type:'function',function:{name:'crear_nota',description:'Crea una nota',parameters:{type:'object',properties:{title:{type:'string'},content:{type:'string'}},required:['title','content']}}}];
+function runTool(name,a){if(name==='crear_tarea'){const p=state.people.find(x=>x.name.toLowerCase()===a.personName?.toLowerCase());const x={id:uid(),title:a.title,date:a.date,time:a.time,notes:a.notes||'',priority:a.priority||'medium',repeat:'none',tags:a.tags||[],personId:p?.id||'',completed:false,createdAt:new Date().toISOString()};const error=validateReminder(x);if(error)return{error};state.tasks.push(x);save();notify(x);renderAll();return{success:true,id:x.id}}if(name==='buscar_tareas')return state.tasks.filter(x=>(!a.pendingOnly||!x.completed)&&(!a.query||(x.title+' '+x.notes).toLowerCase().includes(a.query.toLowerCase()))).slice(0,20);if(name==='completar_tarea'){const x=state.tasks.find(t=>t.id===a.id);if(!x)return{error:'No encontrada'};x.completed=true;save();renderAll();return{success:true}}if(name==='crear_persona'){const p={id:uid(),name:a.name,email:a.email||'',phone:a.phone||'',color:'#6750a4'};state.people.push(p);save();renderAll();return{success:true,id:p.id}}if(name==='crear_nota'){const n={id:uid(),title:a.title,content:a.content,color:'purple',updatedAt:new Date().toISOString()};state.notes.push(n);save();renderAll();return{success:true,id:n.id}}return{error:'Herramienta desconocida'}}
+async function aiRequest(messages,withTools=true){if(!state.ai.key)throw new Error('Configura primero la llave API.');const body={model:state.ai.model,messages,temperature:.2};if(withTools){body.tools=tools;body.tool_choice='auto'}const res=await fetch(state.ai.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.ai.key}`,'HTTP-Referer':location.origin,'X-Title':'Mi agenda'},body:JSON.stringify(body)});const data=await res.json();if(!res.ok)throw new Error(data.error?.message||`Error HTTP ${res.status}`);return data.choices?.[0]?.message}
+async function agent(prompt){const today=localDateKey(),messages=[{role:'system',content:`Eres un asistente de agenda en español. Fecha local: ${today}. Usuario: ${state.ai.ownerName||'usuario'}. Usa herramientas para actuar. Confirma brevemente lo realizado. Para referencias ambiguas, pregunta antes de modificar.`},{role:'user',content:prompt}];for(let i=0;i<5;i++){const msg=await aiRequest(messages);messages.push(msg);if(!msg.tool_calls?.length)return msg.content||'Listo.';for(const call of msg.tool_calls){let args={};try{args=JSON.parse(call.function.arguments)}catch{}const result=runTool(call.function.name,args);messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result)})}}return'Completé las acciones disponibles.'}
+function addMessage(role,text){const d=document.createElement('div');d.className='message '+role;d.textContent=text;$('#chatMessages').append(d);$('#chatMessages').scrollTop=$('#chatMessages').scrollHeight;return d}
+$('#chatForm').onsubmit=async e=>{e.preventDefault();const input=$('#chatInput'),text=input.value.trim();if(!text)return;addMessage('user',text);input.value='';const wait=addMessage('assistant','Pensando…');try{wait.textContent=await agent(text)}catch(err){wait.textContent='No pude completar la solicitud: '+err.message}};
+$('#testAi').onclick=async()=>{state.ai={provider:$('#aiProvider').value,endpoint:$('#aiEndpoint').value.trim(),model:$('#aiModel').value.trim(),key:$('#aiKey').value.trim(),ownerName:$('#ownerName').value.trim()};$('#settingsResult').textContent='Probando…';try{const m=await aiRequest([{role:'user',content:'Responde solamente: conexión correcta'}],false);$('#settingsResult').textContent=m.content||'Conexión correcta.'}catch(e){$('#settingsResult').textContent='Error: '+e.message}};
+loadAi();renderAll();if('serviceWorker'in navigator&&!globalThis.Capacitor?.isNativePlatform?.())navigator.serviceWorker.register('./sw.js');
