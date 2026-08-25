@@ -6,3 +6,6 @@ test('rechaza título vacío',()=>assert.equal(validateReminder({...base,title:'
 test('filtra pendientes y búsqueda',()=>{const items=[base,{...base,id:'2',title:'Comprar pan',completed:true}]; assert.deepEqual(filterReminders(items,'pending','internet').map(x=>x.id),['1']);});
 test('resume estados',()=>assert.deepEqual(getSummary([base,{...base,id:'2',completed:true}], '2026-08-25'),{pending:1,today:1,done:1}));
 test('crea siguiente repetición semanal',()=>{const next=nextOccurrence({...base,repeat:'weekly'}); assert.equal(next.date,'2026-09-01'); assert.equal(next.completed,false);});
+test('repite en días específicos',()=>{const next=nextOccurrence({...base,repeat:'custom_days',repeatDays:[1,5]});assert.equal(next.date,'2026-08-28')});
+test('repite por intervalo de semanas',()=>{const next=nextOccurrence({...base,repeat:'interval',repeatInterval:2,repeatUnit:'weeks'});assert.equal(next.date,'2026-09-08')});
+test('repite el último día del siguiente mes',()=>{const next=nextOccurrence({...base,date:'2026-12-31',repeat:'last_day'});assert.equal(next.date,'2027-01-31')});
