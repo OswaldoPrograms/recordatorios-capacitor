@@ -15,15 +15,19 @@ public final class AlarmScheduler {
     static int requestCode(String id) { return id.hashCode() & 0x7fffffff; }
 
     public static void schedule(Context context, String id, String title, long at, boolean persist) {
-        Intent fire = new Intent(context, AlarmReceiver.class).putExtra("taskId", id).putExtra("title", title);
+        schedule(context, id, title, at, persist, 0L, false);
+    }
+
+    public static void schedule(Context context, String id, String title, long at, boolean persist, long nextAt, boolean repeating) {
+        Intent fire = new Intent(context, AlarmReceiver.class).putExtra("taskId", id).putExtra("title", title).putExtra("nextAt", nextAt).putExtra("repeating", repeating);
         PendingIntent operation = PendingIntent.getBroadcast(context, requestCode(id), fire, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Intent show = new Intent(context, AlarmActivity.class).putExtra("taskId", id).putExtra("title", title);
+        Intent show = new Intent(context, AlarmActivity.class).putExtra("taskId", id).putExtra("title", title).putExtra("nextAt", nextAt).putExtra("repeating", repeating);
         PendingIntent showIntent = PendingIntent.getActivity(context, requestCode(id + ":show"), show, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         manager.setAlarmClock(new AlarmManager.AlarmClockInfo(at, showIntent), operation);
         if (persist) {
             try {
-                JSONObject value = new JSONObject().put("id", id).put("title", title).put("at", at);
+                JSONObject value = new JSONObject().put("id", id).put("title", title).put("at", at).put("nextAt", nextAt).put("repeating", repeating);
                 context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit().putString(id, value.toString()).apply();
             } catch (Exception ignored) {}
         }
@@ -43,7 +47,7 @@ public final class AlarmScheduler {
             try {
                 JSONObject value = new JSONObject((String) entry.getValue());
                 long at = value.getLong("at");
-                if (at > System.currentTimeMillis()) schedule(context, value.getString("id"), value.getString("title"), at, false);
+                if (at > System.currentTimeMillis()) schedule(context, value.getString("id"), value.getString("title"), at, false, value.optLong("nextAt",0L), value.optBoolean("repeating",false));
                 else preferences.edit().remove(entry.getKey()).apply();
             } catch (Exception ignored) {}
         }
