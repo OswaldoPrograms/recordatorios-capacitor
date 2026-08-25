@@ -1,0 +1,6 @@
+{
+  "appId": "com.oswaldo.recordatorios",
+  "appName": "Recordatorios",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" }
+}
