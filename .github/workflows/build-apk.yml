@@ -1,0 +1,76 @@
+name: Compilar APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "native/**"
+      - "scripts/**"
+      - "icons/**"
+      - "index.html"
+      - "styles.css"
+      - "manifest.webmanifest"
+      - "capacitor.config.json"
+      - "package.json"
+      - ".github/workflows/build-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Probar y compilar Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Ejecutar pruebas
+        run: npm test
+
+      - name: Generar aplicación web
+        run: npm run build
+
+      - name: Crear proyecto Android
+        run: npm run cap:add:android
+
+      - name: Sincronizar Capacitor
+        run: npm run cap:sync
+
+      - name: Compilar APK de depuración
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: recordatorios-apk-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
