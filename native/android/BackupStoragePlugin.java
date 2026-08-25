@@ -11,7 +11,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.plugin.util.ActivityResult;
+import androidx.activity.result.ActivityResult;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
