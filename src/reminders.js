@@ -24,7 +24,20 @@ export function nextOccurrence(reminder) {
   const date = toDateTime(reminder);
   if (reminder.repeat === 'daily') date.setDate(date.getDate() + 1);
   if (reminder.repeat === 'weekly') date.setDate(date.getDate() + 7);
-  if (reminder.repeat === 'monthly') date.setMonth(date.getMonth() + 1);
+  if (reminder.repeat === 'monthly') {
+    const day = date.getDate(); date.setDate(1); date.setMonth(date.getMonth() + 1);
+    date.setDate(Math.min(day, new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+  }
+  if (reminder.repeat === 'custom_days') {
+    const days = (reminder.repeatDays || []).map(Number);
+    do date.setDate(date.getDate() + 1); while (!days.includes(date.getDay()));
+  }
+  if (reminder.repeat === 'interval') {
+    const amount = Math.max(1, Number(reminder.repeatInterval || 1));
+    if (reminder.repeatUnit === 'months') { const day=date.getDate();date.setDate(1);date.setMonth(date.getMonth()+amount);date.setDate(Math.min(day,new Date(date.getFullYear(),date.getMonth()+1,0).getDate())) }
+    else date.setDate(date.getDate() + amount * (reminder.repeatUnit === 'weeks' ? 7 : 1));
+  }
+  if (reminder.repeat === 'last_day') date.setTime(new Date(date.getFullYear(),date.getMonth()+2,0,date.getHours(),date.getMinutes()).getTime());
   return { ...reminder, id: crypto.randomUUID(), completed: false, date: localDateKey(date) };
 }
 
