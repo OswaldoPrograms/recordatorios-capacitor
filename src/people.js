@@ -27,6 +27,7 @@ export function findPeople(people, query='') {
 }
 
 export function publicPerson(person) {
-  const {searchTags,id,...visible}=enrichPerson(person);
-  return {id,...visible};
+  const {searchTags,color,id,name,...details}=enrichPerson(person);
+  const useful=Object.fromEntries(Object.entries(details).filter(([,value])=>value!==''&&value!==null&&value!==undefined));
+  return {id,name,...useful};
 }

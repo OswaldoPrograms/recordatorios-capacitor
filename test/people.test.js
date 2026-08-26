@@ -16,6 +16,9 @@ test('encuentra por relación, apodo, nota y últimos números',()=>{
 });
 
 test('no entrega términos privados a la IA',()=>{
-  assert.equal('searchTags' in publicPerson(gael),false);
-  assert.equal(publicPerson(gael).phone,'+52 782 123 4567');
+  const visible=publicPerson(gael);
+  assert.equal('searchTags' in visible,false);
+  assert.equal('color' in visible,false);
+  assert.equal('email' in visible,false);
+  assert.equal(visible.phone,'+52 782 123 4567');
 });
