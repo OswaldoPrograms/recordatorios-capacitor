@@ -23,6 +23,7 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 - Consultas de tareas por periodos reales, como hoy, mañana, esta semana, un día específico o un intervalo de fechas.
 - Historial de conversación con opción para iniciar un chat nuevo.
 - Asistente como pantalla principal, con encabezado y entrada fijos y desplazamiento limitado a los mensajes.
+- Interfaz móvil moderna con navegación inferior para Chat, Tareas, Calendario, Personas, Notas y Ajustes.
 - Dictado por voz con llave, endpoint y modelo de transcripción independientes.
 - Base de datos SQLite nativa en Android, con respaldo de seguridad compatible en la versión web.
 
