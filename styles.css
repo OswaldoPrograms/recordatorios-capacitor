@@ -31,3 +31,33 @@ dialog { width:min(600px,calc(100% - 28px)); border:0; border-radius:28px; paddi
 .drive-panel{margin:18px 0;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-2)}.drive-panel p{margin:4px 0 13px!important}.drive-panel small{display:block;margin-top:12px;color:var(--muted);line-height:1.4}.drive-panel.connected{border-color:#4f8a3c}.drive-panel.connected #driveStatus{color:#28651d}.dark .drive-panel.connected #driveStatus{color:#a8d89a}
 .security-card{margin-top:18px}.security-card h2{margin:3px 0 7px}.security-card>div>p:not(.eyebrow){color:var(--muted);margin-top:0}.security-row{display:flex;justify-content:space-between;align-items:center;gap:18px;padding-top:15px;border-top:1px solid var(--border)}.security-row small{display:block;margin-top:5px;color:var(--muted)}.lock-overlay{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:var(--bg)}.lock-overlay[hidden]{display:none}.lock-box{text-align:center;max-width:360px}.lock-box p{color:var(--muted)}.lock-icon{display:grid;place-items:center;width:68px;height:68px;margin:0 auto 18px;border-radius:22px;background:var(--primary);color:white;font-size:2rem}@media(max-width:520px){.security-row{align-items:flex-start;flex-direction:column}.security-row button{width:100%}}
 .repeat-details{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}.repeat-details>div>span{display:block;margin-bottom:10px;color:var(--muted);font-size:.82rem;font-weight:700}.weekday-picker{display:flex;justify-content:space-between;gap:5px}.weekday-picker label{margin:0}.weekday-picker input{position:absolute;opacity:0;pointer-events:none}.weekday-picker span{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-weight:700}.weekday-picker input:checked+span{background:var(--primary);border-color:var(--primary);color:white}
+
+/* Chat principal: solo la conversación se desplaza */
+.sidebar-close,.menu-backdrop{display:none}
+body.chat-active{overflow:hidden}
+body.chat-active .layout{height:var(--visible-height,100dvh);min-height:0;overflow:hidden}
+body.chat-active .workspace{height:var(--visible-height,100dvh)}
+body.chat-active .workspace main{height:100%;padding-top:20px;padding-bottom:20px;overflow:hidden}
+#assistantView.active{height:100%;min-height:0;display:flex;flex-direction:column}
+#assistantView .page-head{position:relative;top:auto;flex:0 0 auto;margin-bottom:12px;padding-top:0}
+#assistantView .chat-card{flex:1;min-height:0;height:auto;max-height:none}
+#assistantView .chat-messages{height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+#assistantView .chat-form{flex:0 0 auto;background:var(--surface)}
+#assistantView .chat-form textarea{resize:none;max-height:96px}
+
+@media(max-width:780px){
+  .sidebar{z-index:20}
+  .sidebar-close{display:grid;place-items:center;position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:50%;background:var(--surface-2);color:var(--text);font-size:1.6rem;z-index:1}
+  .sidebar .brand{padding-right:42px}
+  .menu-backdrop{position:fixed;inset:0;z-index:19;border:0;background:rgba(20,16,24,.48);backdrop-filter:blur(2px)}
+  .menu-backdrop.visible{display:block}
+  body.chat-active .workspace{display:flex;flex-direction:column}
+  body.chat-active .mobile-head{position:relative;top:auto;flex:0 0 auto}
+  body.chat-active .workspace main{flex:1;min-height:0;height:auto;width:100%;padding:10px 14px max(8px,env(safe-area-inset-bottom))}
+  #assistantView .page-head{margin-inline:0;padding-inline:0;padding-bottom:8px}
+  #assistantView .page-head h1{font-size:1.75rem}
+  #assistantView .page-head p:not(.eyebrow){display:none}
+  #assistantView .chat-card{border-radius:18px}
+  #assistantView .chat-messages{padding:14px}
+  #assistantView .chat-form{padding:10px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+}

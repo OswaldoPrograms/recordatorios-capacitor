@@ -22,6 +22,7 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 - Asistente agéntico compatible con OpenAI, OpenRouter y APIs compatibles; puede consultar y actualizar la información de personas.
 - Consultas de tareas por periodos reales, como hoy, mañana, esta semana, un día específico o un intervalo de fechas.
 - Historial de conversación con opción para iniciar un chat nuevo.
+- Asistente como pantalla principal, con encabezado y entrada fijos y desplazamiento limitado a los mensajes.
 - Dictado por voz con llave, endpoint y modelo de transcripción independientes.
 - Base de datos SQLite nativa en Android, con respaldo de seguridad compatible en la versión web.
 
