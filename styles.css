@@ -113,11 +113,19 @@ body.chat-active .workspace main{height:100%;padding-top:20px;padding-bottom:20p
 
 /* Correcciones de navegación móvil: un solo encabezado y una sola barra */
 .appearance-card{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.appearance-card h2{margin:3px 0 5px}.appearance-card p:not(.eyebrow){margin:0;color:var(--muted)}.appearance-card button{flex:0 0 auto}
+.mobile-chat-action{display:none;margin-left:auto;width:40px;height:40px;border:0;border-radius:13px;background:var(--primary);color:white;font-size:1.65rem;line-height:1;box-shadow:0 7px 16px color-mix(in srgb,var(--primary) 25%,transparent)}
+.settings-disclosure{max-width:650px;margin:0 0 12px;border:1px solid var(--border);border-radius:17px;background:var(--surface);box-shadow:0 2px 8px rgba(38,33,77,.035);overflow:hidden}.settings-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 19px;cursor:pointer;list-style:none}.settings-disclosure>summary::-webkit-details-marker{display:none}.settings-disclosure>summary span{display:grid;gap:3px}.settings-disclosure>summary b{font-size:1rem}.settings-disclosure>summary small{color:var(--muted);font-size:.76rem;font-weight:500}.settings-disclosure>summary i{color:var(--primary);font-size:1.25rem;font-style:normal;transition:transform .18s}.settings-disclosure[open]>summary i{transform:rotate(180deg)}.disclosure-content{padding:0 18px 18px}.disclosure-content>.settings-card{max-width:none;margin:0;padding:18px 0 0;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none}.disclosure-content>.appearance-card{display:flex}.quick-config-card .security-warning{padding:13px;border-radius:12px;background:#fff4d7;color:#674d00}.dark .quick-config-card .security-warning{background:#3a3017;color:#ffe3a0}
 @media(max-width:780px){
   .sidebar,.menu-backdrop,#mobileMenu{display:none!important}
-  .mobile-head{justify-content:flex-start}
+  .mobile-head{justify-content:flex-start}.mobile-chat-action:not([hidden]){display:grid;place-items:center}
+  body.native-platform{--native-status-safe:30px}
+  body.native-platform .mobile-head{height:calc(64px + var(--native-status-safe));padding-top:calc(10px + var(--native-status-safe))}
+  body.native-platform.chat-active .workspace{height:calc(var(--visible-height,100dvh) - 68px - env(safe-area-inset-bottom,0px))}
+  body.native-platform.keyboard-open.chat-active .workspace{height:var(--visible-height,100dvh)}
   .view:not(#assistantView)>.page-head{position:static;height:0;min-height:0;margin:0;padding:0;background:none;backdrop-filter:none;overflow:visible}
   .view:not(#assistantView)>.page-head>div{display:none}
   #tasksView>.page-head .primary,#calendarView>.page-head .primary,#peopleView>.page-head .primary,#notesView>.page-head .primary{position:fixed!important;top:auto!important;right:20px!important;bottom:calc(82px + env(safe-area-inset-bottom,0px))!important;left:auto!important;transform:none!important;width:54px!important;height:54px!important;margin:0!important;padding:0!important;border-radius:17px!important}
   .appearance-card{align-items:flex-start;flex-direction:column}.appearance-card button{width:100%}
+  #assistantView>.page-head{display:none}
+  .settings-disclosure{max-width:none}.settings-disclosure>summary{padding:16px}.disclosure-content{padding:0 16px 16px}
 }
