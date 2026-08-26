@@ -53,16 +53,19 @@ CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, 
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
 `;
 
-async function replaceRows(plugin, table, rows) {
-  await plugin.run({ database: DATABASE_NAME, statement: `DELETE FROM ${table}`, values: [] });
-  for (let position = 0; position < rows.length; position++) {
-    const row = rows[position];
-    if (table === TABLES.chat) {
-      await plugin.run({ database: DATABASE_NAME, statement: `INSERT INTO ${table} (data, position) VALUES (?, ?)`, values: [JSON.stringify(row), position] });
-    } else {
-      await plugin.run({ database: DATABASE_NAME, statement: `INSERT INTO ${table} (id, data, position) VALUES (?, ?, ?)`, values: [String(row.id), JSON.stringify(row), position] });
-    }
+export function replacementSet(table, rows) {
+  const set=[{statement:`DELETE FROM ${table}`,values:[]}];
+  for(let position=0;position<rows.length;position++){
+    const row=rows[position];
+    set.push(table===TABLES.chat
+      ?{statement:`INSERT INTO ${table} (data, position) VALUES (?, ?)`,values:[JSON.stringify(row),position]}
+      :{statement:`INSERT INTO ${table} (id, data, position) VALUES (?, ?, ?)`,values:[String(row.id),JSON.stringify(row),position]});
   }
+  return set;
+}
+
+async function replaceRows(plugin, table, rows) {
+  await plugin.executeSet({database:DATABASE_NAME,set:replacementSet(table,rows),transaction:true});
 }
 
 async function queryRows(plugin, table) {
@@ -76,7 +79,19 @@ async function getSetting(plugin, key, fallback) {
 }
 
 async function putSetting(plugin, key, value) {
-  await plugin.run({ database: DATABASE_NAME, statement: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', values: [key, JSON.stringify(value)] });
+  await plugin.run({ database: DATABASE_NAME, statement: 'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', values: [key, JSON.stringify(value)],transaction:true });
+}
+
+const settingsSet=(values)=>[
+  {statement:'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',values:['ai',JSON.stringify(values.ai||{})]},
+  {statement:'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',values:['preferences',JSON.stringify(values.preferences||{})]},
+  {statement:'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',values:['theme',JSON.stringify(values.theme||'light')]}
+];
+
+async function importSnapshot(plugin,values,markMigration=false){
+  const set=[...replacementSet(TABLES.tasks,values.tasks||[]),...replacementSet(TABLES.people,values.people||[]),...replacementSet(TABLES.notes,values.notes||[]),...replacementSet(TABLES.chat,values.chat||[]),...settingsSet(values)];
+  if(markMigration)set.push({statement:'INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)',values:[MIGRATION_KEY,new Date().toISOString()]});
+  await plugin.executeSet({database:DATABASE_NAME,set,transaction:true});
 }
 
 export async function createAppStorage(keys, environment = globalThis) {
@@ -91,22 +106,19 @@ export async function createAppStorage(keys, environment = globalThis) {
 
   const migrated = await plugin.query({ database: DATABASE_NAME, statement: 'SELECT value FROM app_meta WHERE key = ?', values: [MIGRATION_KEY] });
   if (!migrated.values?.length) {
-    const old = await createWebStorage(keys, environment.localStorage).loadAll();
-    await plugin.execute({ database: DATABASE_NAME, statements: 'BEGIN TRANSACTION;' });
-    try {
-      await replaceRows(plugin, TABLES.tasks, old.tasks);
-      await replaceRows(plugin, TABLES.people, old.people);
-      await replaceRows(plugin, TABLES.notes, old.notes);
-      await replaceRows(plugin, TABLES.chat, old.chat);
-      await putSetting(plugin, 'ai', old.ai);
-      await putSetting(plugin, 'preferences', old.preferences);
-      await putSetting(plugin, 'theme', old.theme);
-      await plugin.run({ database: DATABASE_NAME, statement: 'INSERT INTO app_meta (key, value) VALUES (?, ?)', values: [MIGRATION_KEY, new Date().toISOString()] });
-      await plugin.execute({ database: DATABASE_NAME, statements: 'COMMIT;' });
-    } catch (error) {
-      await plugin.execute({ database: DATABASE_NAME, statements: 'ROLLBACK;' });
-      throw error;
+    await importSnapshot(plugin,await safetyCopy.loadAll(),true);
+  } else {
+    const old=await safetyCopy.loadAll();
+    const recovery=[];
+    for(const [name,table] of Object.entries(TABLES)){
+      const rows=old[name]||[];
+      const count=(await plugin.query({database:DATABASE_NAME,statement:`SELECT COUNT(*) AS total FROM ${table}`,values:[]})).values?.[0]?.total;
+      if(rows.length&&!Number(count))recovery.push(...replacementSet(table,rows));
     }
+    const storedSettings=new Set(((await plugin.query({database:DATABASE_NAME,statement:'SELECT key FROM settings',values:[]})).values||[]).map(row=>row.key));
+    for(const name of ['ai','preferences'])if(!storedSettings.has(name)&&environment.localStorage.getItem(keys[name])!==null)recovery.push({statement:'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',values:[name,JSON.stringify(old[name])]});
+    if(!storedSettings.has('theme')&&environment.localStorage.getItem('recordatorios.theme')!==null)recovery.push({statement:'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',values:['theme',JSON.stringify(old.theme)]});
+    if(recovery.length)await plugin.executeSet({database:DATABASE_NAME,set:recovery,transaction:true});
   }
 
   let writeQueue = Promise.resolve();
@@ -129,21 +141,9 @@ export async function createAppStorage(keys, environment = globalThis) {
         theme: await getSetting(plugin, 'theme', 'light')
       };
     },
-    async saveCollections(data) { return enqueue(async() => {
-      await plugin.execute({ database: DATABASE_NAME, statements: 'BEGIN TRANSACTION;' });
-      try {
-        await replaceRows(plugin, TABLES.tasks, data.tasks || []);
-        await replaceRows(plugin, TABLES.people, data.people || []);
-        await replaceRows(plugin, TABLES.notes, data.notes || []);
-        await plugin.execute({ database: DATABASE_NAME, statements: 'COMMIT;' });
-        await safetyCopy.saveCollections(data);
-      } catch (error) {
-        await plugin.execute({ database: DATABASE_NAME, statements: 'ROLLBACK;' });
-        throw error;
-      }
-    }); },
-    async saveChat(chat) { return enqueue(async() => { await replaceRows(plugin, TABLES.chat, chat || []); await safetyCopy.saveChat(chat); }); },
-    async saveSetting(name, value) { return enqueue(async() => { await putSetting(plugin, name, value); await safetyCopy.saveSetting(name, value); }); },
+    async saveCollections(data) { const snapshot={tasks:[...(data.tasks||[])],people:[...(data.people||[])],notes:[...(data.notes||[])]};await safetyCopy.saveCollections(snapshot);return enqueue(()=>plugin.executeSet({database:DATABASE_NAME,set:[...replacementSet(TABLES.tasks,snapshot.tasks),...replacementSet(TABLES.people,snapshot.people),...replacementSet(TABLES.notes,snapshot.notes)],transaction:true})); },
+    async saveChat(chat) { const snapshot=[...(chat||[])];await safetyCopy.saveChat(snapshot);return enqueue(() => replaceRows(plugin,TABLES.chat,snapshot)); },
+    async saveSetting(name, value) { await safetyCopy.saveSetting(name,value);return enqueue(() => putSetting(plugin,name,value)); },
     async clearAll() { return enqueue(async() => { await plugin.execute({ database: DATABASE_NAME, statements: 'DELETE FROM tasks; DELETE FROM people; DELETE FROM notes; DELETE FROM chat_messages; DELETE FROM settings;' }); await safetyCopy.clearAll(); }); }
   };
 }

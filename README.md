@@ -31,6 +31,8 @@ Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse c
 
 En la APK, las tareas, personas, notas, conversaciones y preferencias se guardan en SQLite. Al instalar esta actualización, la aplicación detecta los datos de versiones anteriores y los importa automáticamente una sola vez, sin borrar la copia anterior. Los respaldos manuales y de Drive continúan usando archivos JSON para que puedan restaurarse fácilmente.
 
+Cada cambio se escribe primero en una copia local de recuperación y después en un lote transaccional de SQLite. Si una actualización anterior dejó una tabla vacía, la aplicación intenta reconstruirla automáticamente desde esa copia local.
+
 Las llaves de IA y transcripción no se guardan en SQLite: en Android permanecen protegidas por Android Keystore.
 
 ## Configurar la inteligencia artificial
