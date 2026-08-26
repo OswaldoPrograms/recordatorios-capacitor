@@ -43,6 +43,8 @@ Para usar dictado, completa también la sección **Transcripción de voz**. De f
 
 > Para una APK personal la configuración se guarda localmente. Si se publica como web para varios usuarios, utiliza un backend intermediario para no exponer llaves API en el navegador.
 
+En **Ajustes > Configuración rápida** puedes exportar o importar un archivo privado con los proveedores, modelos, memorias y llaves. Ese archivo contiene secretos: guárdalo fuera del repositorio y no lo compartas.
+
 ## Probar en navegador
 
 ```bash
