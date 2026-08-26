@@ -65,6 +65,7 @@ body.chat-active .workspace main{height:100%;padding-top:20px;padding-bottom:20p
 /* Identidad visual móvil inspirada en Focus, conservando todas las funciones */
 :root{--bg:#f8f9fb;--surface:#fff;--surface-2:#f3f3f7;--text:#17171b;--muted:#6f7080;--primary:#3927d8;--primary-2:#e8e5ff;--border:#e8e8ef;--shadow:0 8px 24px rgba(34,28,94,.08)}
 :root.dark{--bg:#111116;--surface:#1b1b22;--surface-2:#262630;--text:#f7f7fb;--muted:#aaa9b8;--primary:#9d91ff;--primary-2:#302873;--border:#30303a;--shadow:0 10px 28px rgba(0,0,0,.3)}
+.ph,.ph-fill{display:inline-block;line-height:1;vertical-align:-.12em;font-size:1.15em}.nav-item>.ph,.nav-item>.ph-fill{flex:0 0 22px;font-size:1.25rem}.item-actions button,.note-card footer button{display:grid;place-items:center}.item-actions i,.note-card footer i{font-size:1.1rem}.search>.ph{flex:0 0 auto;font-size:1.15rem}.empty-state .ph,.empty-state .ph-fill{font-size:2.35rem;color:var(--primary)}.mic-button .ph,.mic-button .ph-fill{font-size:1.25rem}.recording .ph-fill{color:#ef4444}.lock-icon .ph-fill{font-size:2rem}.mobile-chat-action .ph{font-size:1.4rem}
 .logo{background:var(--primary);border-radius:12px}.sidebar{box-shadow:4px 0 22px rgba(35,30,75,.04)}
 .page-head h1{letter-spacing:-.045em}.calendar-card,.chat-card,.settings-card,.reminder,.person-card,.note-card{box-shadow:0 2px 8px rgba(38,33,77,.035)}
 .primary{box-shadow:0 7px 16px color-mix(in srgb,var(--primary) 25%,transparent)}
