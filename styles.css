@@ -110,3 +110,14 @@ body.chat-active .workspace main{height:100%;padding-top:20px;padding-bottom:20p
   #assistantView .chat-form textarea{border:0;background:transparent;padding:11px 8px;min-height:44px}
   #assistantView .mic-button{background:transparent}
 }
+
+/* Correcciones de navegación móvil: un solo encabezado y una sola barra */
+.appearance-card{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.appearance-card h2{margin:3px 0 5px}.appearance-card p:not(.eyebrow){margin:0;color:var(--muted)}.appearance-card button{flex:0 0 auto}
+@media(max-width:780px){
+  .sidebar,.menu-backdrop,#mobileMenu{display:none!important}
+  .mobile-head{justify-content:flex-start}
+  .view:not(#assistantView)>.page-head{position:static;height:0;min-height:0;margin:0;padding:0;background:none;backdrop-filter:none;overflow:visible}
+  .view:not(#assistantView)>.page-head>div{display:none}
+  #tasksView>.page-head .primary,#calendarView>.page-head .primary,#peopleView>.page-head .primary,#notesView>.page-head .primary{position:fixed!important;top:auto!important;right:20px!important;bottom:calc(82px + env(safe-area-inset-bottom,0px))!important;left:auto!important;transform:none!important;width:54px!important;height:54px!important;margin:0!important;padding:0!important;border-radius:17px!important}
+  .appearance-card{align-items:flex-start;flex-direction:column}.appearance-card button{width:100%}
+}
