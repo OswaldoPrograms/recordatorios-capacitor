@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.database.Cursor;
+import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -15,6 +16,8 @@ import androidx.activity.result.ActivityResult;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 
 @CapacitorPlugin(name = "BackupStorage")
@@ -41,6 +44,23 @@ public class BackupStoragePlugin extends Plugin {
     }
 
     @PluginMethod public void status(PluginCall call) { JSObject response = new JSObject(); response.put("connected", folderUri() != null); call.resolve(response); }
+
+    @PluginMethod public void share(PluginCall call) {
+        String content = call.getString("content"), fileName = call.getString("fileName"), title = call.getString("title", "Compartir respaldo");
+        if (content == null || fileName == null || !fileName.endsWith(".json")) { call.reject("Falta el archivo para compartir"); return; }
+        try {
+            File directory = new File(getContext().getCacheDir(), "exports");
+            if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("No se pudo preparar la carpeta temporal");
+            File file = new File(directory, fileName.replaceAll("[^a-zA-Z0-9._-]", "-"));
+            try (FileOutputStream stream = new FileOutputStream(file, false)) { stream.write(content.getBytes(StandardCharsets.UTF_8)); }
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("application/json"); intent.putExtra(Intent.EXTRA_STREAM, uri); intent.putExtra(Intent.EXTRA_SUBJECT, title);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(Intent.createChooser(intent, title));
+            JSObject response = new JSObject(); response.put("shared", true); call.resolve(response);
+        } catch (Exception error) { call.reject("No se pudo abrir el menú para compartir", error); }
+    }
 
     @PluginMethod public void write(PluginCall call) {
         String content = call.getString("content"); Uri folder = folderUri();

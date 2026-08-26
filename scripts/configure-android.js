@@ -15,6 +15,9 @@ const permissions = [
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />'
 ];
 const components = `
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="\${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
         <!-- Alarma nativa para tareas de prioridad alta -->
         <activity android:name=".AlarmActivity" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:excludeFromRecents="true" android:theme="@style/AppTheme.NoActionBar" />
         <service android:name=".AlarmService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
@@ -32,11 +35,14 @@ try {
     if (name && !manifest.includes(name)) manifest = manifest.replace(/<manifest([^>]*)>/, `<manifest$1>\n    ${permission}`);
   }
   if (!manifest.includes('.AlarmService')) manifest = manifest.replace('</application>', `${components}\n    </application>`);
+  if (!manifest.includes('.fileprovider')) manifest = manifest.replace('</application>', `        <provider android:name="androidx.core.content.FileProvider" android:authorities="\${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" /></provider>\n    </application>`);
   await writeFile(manifestPath, manifest);
 
   await mkdir(javaPath, { recursive: true });
   for (const file of ['AlarmPlugin.java','AlarmScheduler.java','AlarmReceiver.java','AlarmActionReceiver.java','AlarmService.java','AlarmActivity.java','BootReceiver.java','BackupStoragePlugin.java','SecureVaultPlugin.java','MicrophonePermissionPlugin.java'])
     await cp(`native/android/${file}`, `${javaPath}/${file}`);
+  await mkdir('android/app/src/main/res/xml', { recursive: true });
+  await cp('native/android/file_paths.xml', 'android/app/src/main/res/xml/file_paths.xml');
 
   let activity = await readFile(mainActivityPath, 'utf8');
   if (!activity.includes('registerPlugin(AlarmPlugin.class)')) {
