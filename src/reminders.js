@@ -57,6 +57,19 @@ export function filterReminders(items, filter, query = '', today = localDateKey(
   });
 }
 
+export function searchReminders(items, options = {}) {
+  const needle = String(options.query || '').trim().toLocaleLowerCase('es');
+  const status = options.status || (options.pendingOnly ? 'pending' : 'all');
+  return items.filter(item => {
+    const searchable = `${item.title} ${item.notes || ''} ${(item.tags || []).join(' ')}`.toLocaleLowerCase('es');
+    const textMatches = !needle || searchable.includes(needle);
+    const fromMatches = !options.dateFrom || item.date >= options.dateFrom;
+    const toMatches = !options.dateTo || item.date <= options.dateTo;
+    const statusMatches = status === 'all' || (status === 'pending' && !item.completed) || (status === 'completed' && item.completed);
+    return textMatches && fromMatches && toMatches && statusMatches;
+  }).sort((a,b)=>toDateTime(a)-toDateTime(b));
+}
+
 export function getSummary(items, today = localDateKey()) {
   return {
     pending: items.filter((item) => !item.completed).length,

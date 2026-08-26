@@ -1,5 +1,5 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
-import { filterReminders, getSummary, localDateKey, nextOccurrence, validateReminder } from '../src/reminders.js';
+import { filterReminders, getSummary, localDateKey, nextOccurrence, searchReminders, validateReminder } from '../src/reminders.js';
 const base={id:'1',title:'Pagar internet',notes:'',date:'2026-08-25',time:'12:00',priority:'medium',repeat:'none',completed:false};
 test('genera fecha local estable',()=>assert.equal(localDateKey(new Date(2026,7,5)),'2026-08-05'));
 test('rechaza título vacío',()=>assert.equal(validateReminder({...base,title:''},new Date('2026-08-25T10:00:00')),'Escribe un título.'));
@@ -9,3 +9,5 @@ test('crea siguiente repetición semanal',()=>{const next=nextOccurrence({...bas
 test('repite en días específicos',()=>{const next=nextOccurrence({...base,repeat:'custom_days',repeatDays:[1,5]});assert.equal(next.date,'2026-08-28')});
 test('repite por intervalo de semanas',()=>{const next=nextOccurrence({...base,repeat:'interval',repeatInterval:2,repeatUnit:'weeks'});assert.equal(next.date,'2026-09-08')});
 test('repite el último día del siguiente mes',()=>{const next=nextOccurrence({...base,date:'2026-12-31',repeat:'last_day'});assert.equal(next.date,'2027-01-31')});
+test('busca tareas dentro de una semana usando fechas reales',()=>{const items=[base,{...base,id:'2',date:'2026-08-30',title:'Cierre contable'},{...base,id:'3',date:'2026-09-01'}];assert.deepEqual(searchReminders(items,{dateFrom:'2026-08-24',dateTo:'2026-08-30'}).map(x=>x.id),['1','2'])});
+test('combina periodo, estado y texto',()=>{const items=[base,{...base,id:'2',title:'Cierre contable',date:'2026-08-26',completed:true},{...base,id:'3',title:'Cierre contable',date:'2026-09-02'}];assert.deepEqual(searchReminders(items,{query:'contable',dateFrom:'2026-08-24',dateTo:'2026-08-30',status:'completed'}).map(x=>x.id),['2'])});
