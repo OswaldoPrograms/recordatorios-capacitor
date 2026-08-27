@@ -1,6 +1,6 @@
 {
   "appId": "com.oswaldo.recordatorios",
-  "appName": "Recordatorios",
+  "appName": "Luna Agenda",
   "webDir": "dist",
   "server": { "androidScheme": "https" },
   "plugins": {

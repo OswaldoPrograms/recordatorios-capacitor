@@ -1,6 +1,6 @@
-# Recordatorios
+# Luna Agenda
 
-Aplicación web progresiva (PWA) de recordatorios, preparada para empaquetarse como APK mediante Capacitor. Funciona sin conexión y guarda los datos localmente en el dispositivo.
+Asistente personal de agenda preparado como PWA y APK mediante Capacitor. Funciona sin conexión y guarda los datos localmente en el dispositivo.
 
 ## Funciones
 

@@ -1,7 +1,7 @@
 {
-  "name": "Recordatorios",
-  "short_name": "Recordatorios",
-  "description": "Organiza recordatorios y recibe avisos a tiempo.",
+  "name": "Luna Agenda",
+  "short_name": "Luna",
+  "description": "Tu memoria personal para organizar tareas, personas y notas.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

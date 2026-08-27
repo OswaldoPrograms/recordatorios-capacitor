@@ -31,7 +31,7 @@ public class SecureVaultPlugin extends Plugin {
             @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) { super.onAuthenticationSucceeded(result); unlocked = true; JSObject response = new JSObject(); response.put("authenticated", true); call.resolve(response); }
             @Override public void onAuthenticationError(int code, CharSequence message) { super.onAuthenticationError(code, message); call.reject(message.toString()); }
         });
-        BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder().setTitle("Desbloquear Mi agenda").setSubtitle("Usa tu huella, rostro, PIN, patrón o contraseña").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL).build();
+        BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder().setTitle("Desbloquear Luna Agenda").setSubtitle("Usa tu huella, rostro, PIN, patrón o contraseña").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL).build();
         activity.runOnUiThread(() -> prompt.authenticate(info));
     }
     @PluginMethod public void setEnabled(PluginCall call) { boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false)); if (enabled && !unlocked) { call.reject("Primero autentícate para activar el bloqueo"); return; } prefs().edit().putBoolean("lock_enabled", enabled).apply(); if (!enabled) unlocked = true; call.resolve(); }
