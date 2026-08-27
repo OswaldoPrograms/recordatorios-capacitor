@@ -70,6 +70,13 @@ export function searchReminders(items, options = {}) {
   }).sort((a,b)=>toDateTime(a)-toDateTime(b));
 }
 
+export function shouldReopenOnReschedule(reminder, changes = {}) {
+  if (!reminder.completed) return false;
+  const dateChanged = changes.date !== undefined && changes.date !== reminder.date;
+  const timeChanged = changes.time !== undefined && changes.time !== reminder.time;
+  return dateChanged || timeChanged;
+}
+
 export function getSummary(items, today = localDateKey()) {
   return {
     pending: items.filter((item) => !item.completed).length,
