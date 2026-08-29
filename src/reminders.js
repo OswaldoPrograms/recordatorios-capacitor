@@ -77,10 +77,20 @@ export function shouldReopenOnReschedule(reminder, changes = {}) {
   return dateChanged || timeChanged;
 }
 
+export function weekRange(today = localDateKey()) {
+  const date = new Date(`${today}T12:00:00`);
+  const mondayOffset = date.getDay() === 0 ? 6 : date.getDay() - 1;
+  const start = new Date(date); start.setDate(date.getDate() - mondayOffset);
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  return { start: localDateKey(start), end: localDateKey(end) };
+}
+
 export function getSummary(items, today = localDateKey()) {
+  const week = weekRange(today);
   return {
-    pending: items.filter((item) => !item.completed).length,
+    pending: items.filter((item) => !item.completed && item.date <= week.end).length,
     today: items.filter((item) => !item.completed && item.date === today).length,
-    done: items.filter((item) => item.completed).length
+    done: items.filter((item) => item.completed && item.date >= week.start && item.date <= week.end).length,
+    overdue: items.filter((item) => !item.completed && item.date < today).length
   };
 }

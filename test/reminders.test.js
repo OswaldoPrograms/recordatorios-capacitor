@@ -1,10 +1,11 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
-import { filterReminders, getSummary, localDateKey, nextOccurrence, searchReminders, shouldReopenOnReschedule, validateReminder } from '../src/reminders.js';
+import { filterReminders, getSummary, localDateKey, nextOccurrence, searchReminders, shouldReopenOnReschedule, validateReminder, weekRange } from '../src/reminders.js';
 const base={id:'1',title:'Pagar internet',notes:'',date:'2026-08-25',time:'12:00',priority:'medium',repeat:'none',completed:false};
 test('genera fecha local estable',()=>assert.equal(localDateKey(new Date(2026,7,5)),'2026-08-05'));
 test('rechaza título vacío',()=>assert.equal(validateReminder({...base,title:''},new Date('2026-08-25T10:00:00')),'Escribe un título.'));
 test('filtra pendientes y búsqueda',()=>{const items=[base,{...base,id:'2',title:'Comprar pan',completed:true}]; assert.deepEqual(filterReminders(items,'pending','internet').map(x=>x.id),['1']);});
-test('resume estados',()=>assert.deepEqual(getSummary([base,{...base,id:'2',completed:true}], '2026-08-25'),{pending:1,today:1,done:1}));
+test('calcula la semana de lunes a domingo',()=>assert.deepEqual(weekRange('2026-08-25'),{start:'2026-08-24',end:'2026-08-30'}));
+test('resume vencidas y tareas de la semana',()=>{const items=[base,{...base,id:'2',date:'2026-08-20'},{...base,id:'3',date:'2026-08-30',completed:true},{...base,id:'4',date:'2026-09-01'},{...base,id:'5',date:'2026-08-23',completed:true}];assert.deepEqual(getSummary(items,'2026-08-25'),{pending:2,today:1,done:1,overdue:1})});
 test('crea siguiente repetición semanal',()=>{const next=nextOccurrence({...base,repeat:'weekly'}); assert.equal(next.date,'2026-09-01'); assert.equal(next.completed,false);});
 test('repite en días específicos',()=>{const next=nextOccurrence({...base,repeat:'custom_days',repeatDays:[1,5]});assert.equal(next.date,'2026-08-28')});
 test('repite por intervalo de semanas',()=>{const next=nextOccurrence({...base,repeat:'interval',repeatInterval:2,repeatUnit:'weeks'});assert.equal(next.date,'2026-09-08')});
