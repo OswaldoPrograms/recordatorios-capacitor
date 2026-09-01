@@ -1,5 +1,5 @@
-const CACHE = 'recordatorios-v3.3';
-const ASSETS = ['./','index.html','styles.css','src/app.js','src/reminders.js','manifest.webmanifest','icons/icon.svg','node_modules/@phosphor-icons/web/src/regular/style.css','node_modules/@phosphor-icons/web/src/regular/Phosphor.woff2','node_modules/@phosphor-icons/web/src/fill/style.css','node_modules/@phosphor-icons/web/src/fill/Phosphor-Fill.woff2'];
+const CACHE = 'recordatorios-v3.4';
+const ASSETS = ['./','index.html','styles.css','src/app.js','src/reminders.js','src/storage.js','src/people.js','src/chat-queue.js','manifest.webmanifest','icons/icon.svg','node_modules/@phosphor-icons/web/src/regular/style.css','node_modules/@phosphor-icons/web/src/regular/Phosphor.woff2','node_modules/@phosphor-icons/web/src/fill/style.css','node_modules/@phosphor-icons/web/src/fill/Phosphor-Fill.woff2'];
 self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (event) => event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', (event) => { if (event.request.method === 'GET') event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => { const copy=response.clone(); caches.open(CACHE).then((cache)=>cache.put(event.request,copy)); return response; }).catch(()=>caches.match('./index.html')))); });
